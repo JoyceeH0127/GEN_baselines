@@ -82,8 +82,7 @@ def prompt_for(task: dict[str, Any]) -> str:
     """Keep this text identical to the FLUX.2 comparison prompt."""
     objects = object_phrase(task["class_names"])
     return (
-        f"Aerial UAV view. Insert {objects} in aerial view into masked regions. "
-        "Match the aerial perspective, lighting, and style of the scene."
+        f"Preserve all existng objects and keep the rest of image unchanged. Insert additional {objects} in aerial view. Match the aerial perspective, lighting, and style of the scene. "
     )
 
 
