@@ -103,7 +103,7 @@ def load_pipeline(
         raise FileNotFoundError(f"Model directory not found: {model_path}")
     pipeline = QwenImageEditPlusPipeline.from_pretrained(
         str(model_path),
-        dtype=torch.bfloat16,
+        torch_dtype=torch.bfloat16,
         local_files_only=True,
         low_cpu_mem_usage=True,
     )
