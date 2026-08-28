@@ -73,7 +73,7 @@ def prompt_for(task: dict[str, Any]) -> str:
     objects = object_phrase(task["class_names"])
     return (
         f"Aerial UAV view. Insert {objects} in aerial view. "
-        "Match the aerial perspective, lighting, and style of the scene. Preseve all exisitng objects and keep the background unchanged."
+        "Match the aerial perspective, lighting, and style of the scene. Preseve all exisitng objects and keep the rest of image unchanged."
     )
 
 
