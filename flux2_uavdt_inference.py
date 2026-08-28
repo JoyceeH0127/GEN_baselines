@@ -72,7 +72,7 @@ def object_phrase(counts: dict[str, int]) -> str:
 def prompt_for(task: dict[str, Any]) -> str:
     objects = object_phrase(task["class_names"])
     return (
-        f"Preseve all exisitng objects and keep the rest of image unchanged. Insert {objects} in aerial view. Match the aerial perspective, lighting, and style of the scene. "
+        f"Preserve all existng objects and keep the rest of image unchanged. Insert additional {objects} in aerial view. Match the aerial perspective, lighting, and style of the scene. "
     )
 
 
