@@ -52,7 +52,18 @@ def source_for(root: Path, task: dict[str, Any]) -> Path:
 
 
 def object_phrase(counts: dict[str, int]) -> str:
-    names = (("car", "cars"), ("truck", "trucks"), ("bus", "buses"))
+    names = (
+        ("pedestrian", "pedestrians"),
+        ("people", "people"),
+        ("bicycle", "bicycles"),
+        ("car", "cars"),
+        ("van", "vans"),
+        ("truck", "trucks"),
+        ("tricycle", "tricycles"),
+        ("awning-tricycle", "awning-tricycles"),
+        ("bus", "buses"),
+        ("motor", "motors"),
+    )
     parts: list[str] = []
     for singular, plural in names:
         count = int(counts.get(singular, 0))
