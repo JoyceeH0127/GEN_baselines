@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Batch FLUX.2-dev inference for the UAVDT insertion schedule.
+"""Batch FLUX.2-dev inference for the VIsdrone insertion schedule.
 
 The JSON has no separate mask path, so each input image is assumed to already
 contain the masked regions referred to by the editing prompt.
@@ -19,10 +19,10 @@ from diffusers import Flux2Pipeline
 from PIL import Image
 
 
-OLD_ROOT_MARKER = "/datasets/UAVDT/"
-DEFAULT_DATA_ROOT = Path("/home/qinma/yelo/datasets/UAVDT")
+OLD_ROOT_MARKER = "/datasets/Visdrone/"
+DEFAULT_DATA_ROOT = Path("/home/qinma/yelo/datasets/Visdrone")
 DEFAULT_MODEL_PATH = Path("/home/qinma/yelo/models/FLUX.2-dev")
-DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/FLUX.2-dev_UAVDT")
+DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/FLUX.2-dev_Visdrone")
 
 
 def arguments() -> argparse.Namespace:
@@ -50,7 +50,7 @@ def flatten_tasks(schedule: dict[str, Any]) -> list[dict[str, Any]]:
 def resolve_source(path: str, data_root: Path) -> Path:
     path = path.replace("\\", "/")
     if OLD_ROOT_MARKER not in path:
-        raise ValueError(f"Cannot replace UAVDT root in path: {path}")
+        raise ValueError(f"Cannot replace VIsdrone root in path: {path}")
     relative = path.split(OLD_ROOT_MARKER, 1)[1]
     return data_root / relative
 
