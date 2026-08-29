@@ -1,0 +1,13 @@
+[Unit]
+Description=Reserve idle NVIDIA GPUs
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/gpu-watchdog/gpu_watchdog.py
+Restart=on-failure
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
