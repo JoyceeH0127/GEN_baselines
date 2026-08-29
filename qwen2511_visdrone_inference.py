@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Batch FLUX.2-dev inference for the VIsdrone insertion schedule.
+"""Batch Qwen-Image-Edit-2511 inference for the Visdrone insertion schedule.
 
-The JSON has no separate mask path, so each input image is assumed to already
-contain the masked regions referred to by the editing prompt.
+Source images are read from the Visdrone data directory using ``frame_stem``
+from each schedule task. The schedule has no separate mask path, so input
+images are assumed to already contain the masked regions.
 """
 
 from __future__ import annotations
@@ -15,13 +16,13 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from diffusers import Flux2Pipeline
+from diffusers import QwenImageEditPlusPipeline
 from PIL import Image
 
 
 DEFAULT_DATA_ROOT = Path("/home/qinma/yelo/datasets/Visdrone")
-DEFAULT_MODEL_PATH = Path("/home/qinma/yelo/models/FLUX.2-dev")
-DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/FLUX.2-dev_Visdrone")
+DEFAULT_MODEL_PATH = Path("/home/qinma/yelo/models/Qwen-Image-Edit-2511")
+DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/Qwen-Image-Edit-2511_Visdrone")
 
 
 def arguments() -> argparse.Namespace:
@@ -31,14 +32,21 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--gpu-id", type=int, default=0)
-    parser.add_argument("--steps", type=int, default=28)
-    parser.add_argument("--guidance-scale", type=float, default=4.0)
+    parser.add_argument("--steps", type=int, default=40)
+    parser.add_argument("--true-cfg-scale", type=float, default=4.0)
+    parser.add_argument("--guidance-scale", type=float, default=1.0)
+    parser.add_argument("--negative-prompt", default=" ")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-generated-size", action="store_true")
+    parser.add_argument(
+        "--cpu-offload",
+        action="store_true",
+        help="Use sequential component CPU offload instead of placing all weights on GPU.",
+    )
     return parser.parse_args()
 
 
@@ -52,7 +60,18 @@ def source_for(root: Path, task: dict[str, Any]) -> Path:
 
 
 def object_phrase(counts: dict[str, int]) -> str:
-    names = (("car", "cars"), ("truck", "trucks"), ("bus", "buses"))
+    names = (
+        ("pedestrian", "pedestrians"),
+        ("people", "people"),
+        ("bicycle", "bicycles"),
+        ("car", "cars"),
+        ("van", "vans"),
+        ("truck", "trucks"),
+        ("tricycle", "tricycles"),
+        ("awning-tricycle", "awning-tricycles"),
+        ("bus", "buses"),
+        ("motor", "motors"),
+    )
     parts: list[str] = []
     for singular, plural in names:
         count = int(counts.get(singular, 0))
@@ -66,14 +85,13 @@ def object_phrase(counts: dict[str, int]) -> str:
 
 
 def prompt_for(task: dict[str, Any]) -> str:
+    """Keep this text identical to the FLUX.2 comparison prompt."""
     objects = object_phrase(task["class_names"])
     return (
         f"Preserve all existng objects and keep the rest of image unchanged. Insert additional {objects} in aerial view. Match the aerial perspective, lighting, and style of the scene. "
     )
 
 
-# def destination_for(root: Path, task: dict[str, Any]) -> Path:
-#     return root / task["seq"] / f"img{int(task['frame_id']):06d}.png"
 def destination_for(root: Path, task: dict[str, Any]) -> Path:
     return root / f"{task['frame_stem']}.jpg"
 
@@ -84,16 +102,22 @@ def write_manifest(path: Path, record: dict[str, Any]) -> None:
         stream.flush()
 
 
-def load_pipeline(model_path: Path, gpu_id: int) -> Flux2Pipeline:
+def load_pipeline(
+    model_path: Path, gpu_id: int, cpu_offload: bool
+) -> QwenImageEditPlusPipeline:
     if not model_path.is_dir():
         raise FileNotFoundError(f"Model directory not found: {model_path}")
-    pipeline = Flux2Pipeline.from_pretrained(
+    pipeline = QwenImageEditPlusPipeline.from_pretrained(
         str(model_path),
         torch_dtype=torch.bfloat16,
         local_files_only=True,
         low_cpu_mem_usage=True,
     )
-    pipeline.enable_model_cpu_offload(gpu_id=gpu_id)
+    if cpu_offload:
+        pipeline.enable_model_cpu_offload(gpu_id=gpu_id)
+    else:
+        pipeline.to(f"cuda:{gpu_id}")
+    pipeline.set_progress_bar_config(disable=False)
     return pipeline
 
 
@@ -112,6 +136,7 @@ def main() -> int:
     print(f"Model: {args.model_path}")
     print(f"Data root: {args.data_root}")
     print(f"Output root: {args.output_root}")
+    print(f"CPU offload: {args.cpu_offload}")
 
     if args.dry_run:
         for index, task in indexed_tasks:
@@ -141,7 +166,7 @@ def main() -> int:
 
     args.output_root.mkdir(parents=True, exist_ok=True)
     manifest = args.output_root / "manifest.jsonl"
-    pipeline = load_pipeline(args.model_path, args.gpu_id)
+    pipeline = load_pipeline(args.model_path, args.gpu_id, args.cpu_offload)
     device = f"cuda:{args.gpu_id}"
     succeeded = skipped = failed = 0
 
@@ -169,11 +194,14 @@ def main() -> int:
             generator = torch.Generator(device=device).manual_seed(seed)
             with torch.inference_mode():
                 result = pipeline(
-                    image=source,
+                    image=[source],
                     prompt=prompt,
                     generator=generator,
+                    true_cfg_scale=args.true_cfg_scale,
+                    negative_prompt=args.negative_prompt,
                     num_inference_steps=args.steps,
                     guidance_scale=args.guidance_scale,
+                    num_images_per_prompt=1,
                 ).images[0]
 
             if not args.keep_generated_size and result.size != source_size:
@@ -185,6 +213,7 @@ def main() -> int:
                 manifest,
                 {
                     "status": "ok",
+                    "model": "Qwen-Image-Edit-2511",
                     "index": index,
                     "seq": task["seq"],
                     "frame_id": task["frame_id"],
@@ -193,6 +222,9 @@ def main() -> int:
                     "class_names": task["class_names"],
                     "prompt": prompt,
                     "seed": seed,
+                    "steps": args.steps,
+                    "true_cfg_scale": args.true_cfg_scale,
+                    "guidance_scale": args.guidance_scale,
                     "seconds": round(time.time() - started, 3),
                 },
             )
@@ -203,6 +235,7 @@ def main() -> int:
                 manifest,
                 {
                     "status": "error",
+                    "model": "Qwen-Image-Edit-2511",
                     "index": index,
                     "seq": task.get("seq"),
                     "frame_id": task.get("frame_id"),
