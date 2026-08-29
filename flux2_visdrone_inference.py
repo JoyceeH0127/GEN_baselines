@@ -19,7 +19,6 @@ from diffusers import Flux2Pipeline
 from PIL import Image
 
 
-OLD_ROOT_MARKER = "/datasets/Visdrone/"
 DEFAULT_DATA_ROOT = Path("/home/qinma/yelo/datasets/Visdrone")
 DEFAULT_MODEL_PATH = Path("/home/qinma/yelo/models/FLUX.2-dev")
 DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/FLUX.2-dev_Visdrone")
@@ -47,12 +46,9 @@ def flatten_tasks(schedule: dict[str, Any]) -> list[dict[str, Any]]:
     return [task for tasks in schedule["sequences"].values() for task in tasks]
 
 
-def resolve_source(path: str, data_root: Path) -> Path:
-    path = path.replace("\\", "/")
-    if OLD_ROOT_MARKER not in path:
-        raise ValueError(f"Cannot replace VIsdrone root in path: {path}")
-    relative = path.split(OLD_ROOT_MARKER, 1)[1]
-    return data_root / relative
+def source_for(root: Path, task: dict[str, Any]) -> Path:
+    """Return the source image path using the schedule's frame filename."""
+    return root / f"{task['frame_stem']}.jpg"
 
 
 def object_phrase(counts: dict[str, int]) -> str:
@@ -123,7 +119,7 @@ def main() -> int:
                 json.dumps(
                     {
                         "index": index,
-                        "source": str(resolve_source(task["image"], args.data_root)),
+                        "source": str(source_for(args.data_root, task)),
                         "output": str(destination_for(args.output_root, task)),
                         "prompt": prompt_for(task),
                         "seed": base_seed + index,
@@ -150,7 +146,7 @@ def main() -> int:
     succeeded = skipped = failed = 0
 
     for position, (index, task) in enumerate(indexed_tasks, start=1):
-        source_path = resolve_source(task["image"], args.data_root)
+        source_path = source_for(args.data_root, task)
         output_path = destination_for(args.output_root, task)
         prompt = prompt_for(task)
         seed = base_seed + index
