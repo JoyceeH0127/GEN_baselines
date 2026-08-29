@@ -76,8 +76,10 @@ def prompt_for(task: dict[str, Any]) -> str:
     )
 
 
+# def destination_for(root: Path, task: dict[str, Any]) -> Path:
+#     return root / task["seq"] / f"img{int(task['frame_id']):06d}.png"
 def destination_for(root: Path, task: dict[str, Any]) -> Path:
-    return root / task["seq"] / f"img{int(task['frame_id']):06d}.png"
+    return root / f"{task['frame_stem']}.jpg"
 
 
 def write_manifest(path: Path, record: dict[str, Any]) -> None:
