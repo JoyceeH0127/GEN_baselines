@@ -334,8 +334,21 @@ class DiffreeRunner:
                 raise FileNotFoundError(
                     f"Local CLIP model directory not found: {clip_model_path}"
                 )
-            config.model.params.cond_stage_config.params.version = str(
-                clip_model_path.resolve()
+            config = OmegaConf.merge(
+                config,
+                OmegaConf.create(
+                    {
+                        "model": {
+                            "params": {
+                                "cond_stage_config": {
+                                    "params": {
+                                        "version": str(clip_model_path.resolve())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ),
             )
         self.model = load_model_from_config(
             config, checkpoint_path, vae_checkpoint
