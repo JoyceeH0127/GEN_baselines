@@ -38,6 +38,9 @@ DEFAULT_CONFIG_PATH = DEFAULT_DIFFREE_ROOT / "config/generate.yaml"
 DEFAULT_CHECKPOINT_PATH = (
     DEFAULT_DIFFREE_ROOT / "checkpoints/diffree-step=000010999.ckpt"
 )
+DEFAULT_CLIP_MODEL_PATH = (
+    DEFAULT_DIFFREE_ROOT / "pretrained/clip-vit-large-patch14"
+)
 
 # Make Diffree's bundled ``stable_diffusion`` package importable even when this
 # script is launched from another working directory.
@@ -71,6 +74,12 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT_PATH)
     parser.add_argument("--vae-checkpoint", type=Path, default=None)
+    parser.add_argument(
+        "--clip-model-path",
+        type=Path,
+        default=DEFAULT_CLIP_MODEL_PATH,
+        help="Local openai/clip-vit-large-patch14 directory for offline inference.",
+    )
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--gpu-id", type=int, default=0)
@@ -309,11 +318,20 @@ class DiffreeRunner:
         config_path: Path,
         checkpoint_path: Path,
         vae_checkpoint: Path | None,
+        clip_model_path: Path | None,
         device: torch.device,
     ) -> None:
         if not config_path.is_file():
             raise FileNotFoundError(f"Config not found: {config_path}")
         config = OmegaConf.load(config_path)
+        if clip_model_path is not None:
+            if not clip_model_path.is_dir():
+                raise FileNotFoundError(
+                    f"Local CLIP model directory not found: {clip_model_path}"
+                )
+            config.model.params.cond_stage_config.params.version = str(
+                clip_model_path.resolve()
+            )
         self.model = load_model_from_config(
             config, checkpoint_path, vae_checkpoint
         ).eval().to(device)
@@ -466,7 +484,11 @@ def main() -> int:
     args.output_root.mkdir(parents=True, exist_ok=True)
     manifest = args.output_root / "manifest.jsonl"
     runner = DiffreeRunner(
-        args.config, args.checkpoint, args.vae_checkpoint, device
+        args.config,
+        args.checkpoint,
+        args.vae_checkpoint,
+        args.clip_model_path,
+        device,
     )
     succeeded = skipped = failed = 0
 
