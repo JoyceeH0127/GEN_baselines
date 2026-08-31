@@ -558,6 +558,7 @@ def main() -> int:
                         current = candidate
                         object_records.append(
                             {
+                                "status": "inserted",
                                 "object_index": object_index,
                                 "object": object_name,
                                 "prompt": prompt,
@@ -572,9 +573,21 @@ def main() -> int:
                         f"next_seed={attempt_seed + 1}"
                     )
                 else:
-                    raise RuntimeError(
-                        f"No object mask for {object_name!r} after "
-                        f"{args.max_retries + 1} attempts"
+                    object_records.append(
+                        {
+                            "status": "skipped_empty_mask",
+                            "object_index": object_index,
+                            "object": object_name,
+                            "prompt": prompt,
+                            "seed": initial_seed + args.max_retries,
+                            "retries": args.max_retries,
+                            "attempts": args.max_retries + 1,
+                            "mask_mean": round(mask_mean, 6),
+                        }
+                    )
+                    print(
+                        f"    skip {object_name!r}: no valid mask after "
+                        f"{args.max_retries + 1} attempts; continuing"
                     )
 
             if not args.keep_generated_size and current.size != original_size:
@@ -585,7 +598,12 @@ def main() -> int:
             write_manifest(
                 manifest,
                 {
-                    "status": "ok",
+                    "status": "partial"
+                    if any(
+                        record["status"] == "skipped_empty_mask"
+                        for record in object_records
+                    )
+                    else "ok",
                     "model": "Diffree",
                     "index": index,
                     "seq": task["seq"],
