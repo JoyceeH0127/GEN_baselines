@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -30,15 +31,23 @@ from torch import autocast
 
 OLD_ROOT_MARKER = "/datasets/UAVDT/"
 DEFAULT_DATA_ROOT = Path("/home/qinma/yelo/datasets/UAVDT")
-DEFAULT_DIFFREE_ROOT = Path("/home/qinma/yelo/models/Diffree")
+DEFAULT_DIFFREE_ROOT = Path(
+    os.environ.get("DIFFREE_ROOT", "/home/qinma/yelo/models/Diffree")
+).expanduser()
 DEFAULT_OUTPUT_ROOT = Path("/home/qinma/yelo/outputs/Diffree_UAVDT")
 DEFAULT_CONFIG_PATH = DEFAULT_DIFFREE_ROOT / "config/generate.yaml"
 DEFAULT_CHECKPOINT_PATH = (
     DEFAULT_DIFFREE_ROOT / "checkpoints/diffree-step=000010999.ckpt"
 )
 
-# Diffree keeps the Stable Diffusion package inside its repository.
-sys.path.insert(0, str(DEFAULT_DIFFREE_ROOT / "stable_diffusion"))
+# Make Diffree's bundled ``stable_diffusion`` package importable even when this
+# script is launched from another working directory.
+if not (DEFAULT_DIFFREE_ROOT / "stable_diffusion").is_dir():
+    raise FileNotFoundError(
+        "Diffree repository not found at "
+        f"{DEFAULT_DIFFREE_ROOT}. Set DIFFREE_ROOT to the repository path."
+    )
+sys.path.insert(0, str(DEFAULT_DIFFREE_ROOT))
 from stable_diffusion.ldm.util import instantiate_from_config  # noqa: E402
 
 
