@@ -47,6 +47,7 @@ if not (DEFAULT_DIFFREE_ROOT / "stable_diffusion").is_dir():
         f"{DEFAULT_DIFFREE_ROOT}. Set DIFFREE_ROOT to the repository path."
     )
 sys.path.insert(0, str(DEFAULT_DIFFREE_ROOT))
+sys.path.insert(0, str(DEFAULT_DIFFREE_ROOT / "stable_diffusion"))
 from stable_diffusion.ldm.util import instantiate_from_config  # noqa: E402
 
 
