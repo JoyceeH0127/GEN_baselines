@@ -59,7 +59,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--resolution", type=int, default=1024)
     parser.add_argument(
         "--source-prompt",
-        default="An aerial photograph of an urban street scene",
+        # default="An aerial photograph of an urban street scene",
+        default="A realistic low-resolution aerial surveillance photograph of an urban road scene with small vehicles and pedestrians, preserving the original camera view, lighting, colors, and image quality",
         help="Description shared by the unedited VisDrone frames.",
     )
     parser.add_argument("--seed", type=int, default=None)
@@ -113,8 +114,9 @@ def objects_for(task: dict[str, Any]) -> list[str]:
 
 def target_prompt(source_prompt: str, object_name: str) -> str:
     return (
-        f"{source_prompt}, with an additional {object_name} visible in the scene, "
-        "matching the aerial perspective, scale, lighting, and photographic style"
+        # f"{source_prompt}, with an additional {object_name} visible in the scene, "
+        # "matching the aerial perspective, scale, lighting, and photographic style"
+        f"{source_prompt}, with one addtional {object_name}."
     )
 
 
