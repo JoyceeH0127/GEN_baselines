@@ -64,21 +64,21 @@ def source_for(root: Path, task: dict[str, Any]) -> Path:
 
 def object_phrase(counts: dict[str, int]) -> str:
     names = (
-        ("person", "person", "people"),
-        ("rider", "rider", "riders"),
-        ("bike", "bicycle", "bicycles"),
-        ("car", "car", "cars"),
-        ("truck", "truck", "trucks"),
-        ("bus", "bus", "buses"),
-        ("motor", "motorcycle", "motorcycles"),
-        ("traffic light", "traffic light", "traffic lights"),
-        ("traffic sign", "traffic sign", "traffic signs"),
+        "person",
+        "rider",
+        "bike",
+        "car",
+        "truck",
+        "bus",
+        "motor",
+        "traffic light",
+        "traffic sign",
     )
     parts: list[str] = []
-    for class_name, singular, plural in names:
-        count = int(counts.get(class_name, 0))
+    for name in names:
+        count = int(counts.get(name, 0))
         if count > 0:
-            parts.append(f"{count} {singular if count == 1 else plural}")
+            parts.append(f"{count} {name}")
     if not parts:
         raise ValueError(f"No objects requested: {counts}")
     if len(parts) == 1:
