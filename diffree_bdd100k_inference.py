@@ -57,11 +57,11 @@ from stable_diffusion.ldm.util import instantiate_from_config  # noqa: E402
 CLASS_NAMES = (
     ("person", "person"),
     ("rider", "rider"),
-    ("bike", "bicycle"),
+    ("bike", "bike"),
     ("car", "car"),
     ("truck", "truck"),
     ("bus", "bus"),
-    ("motor", "motorcycle"),
+    ("motor", "motor"),
     ("traffic light", "traffic light"),
     ("traffic sign", "traffic sign"),
 )
